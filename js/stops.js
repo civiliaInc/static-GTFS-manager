@@ -60,7 +60,8 @@ var table = new Tabulator("#stops-table", {
 		{ title: "stop_timezone", field: "stop_timezone", editor: select2TZEditor, download: true, visible: false },
 		{ title: "wheelchair_boarding", field: "wheelchair_boarding", editor: "select", headerSort: false, editorParams: { values: { 0: "No (0)", 1: "Yes (1)" } }, download: true },
 		{ title: "level_id", field: "level_id", editor: "input", download: true, visible: false },
-		{ title: "platform_code", field: "platform_code", editor: "input", download: true, visible: false }
+		{ title: "platform_code", field: "platform_code", editor: "input", download: true, visible: false },
+		{ formatter: () => "<i class='fas fa-trash-alt'></i>", align: "center", title: "", headerSort: false, tooltip: "Delete this stop", cellClick: function (e, cell) { deleteStop(cell.getRow()); }}
 	],
 
 	rowSelected: function (row) { //when a row is selected
@@ -222,15 +223,6 @@ Extralayers.forEach(function(layers, index) {
 
 	
 });
-
-var baseLayers = {
-	"CartoDB Positron" : cartoLight,
-	"CartoDB DarkMatter" : cartoDark,
-	"ESRI Sat" : esriSat,
-	"OpenStreetMap" : OSM,
-	"gStreets": gStreets,
-	"gHybrid": gHybrid
-};
 
 var map = new L.Map('map', {
 	center: [0, 0],
@@ -811,6 +803,18 @@ function saveStops() {
 
 }
 
+function deleteStop(row) {
+	const stop_id = row.getData()["stop_id"];
+	$.get(`${APIpath}diagnoseID?column=stop_id&value=${stop_id}`, function (response) {
+		$('#DeleteModalPreview').text(response);
+		$('#DeleteStopButton').data("stop_id", stop_id);
+		$('#DeleteStopButton').data("row", row);
+		$('#DeleteModal').modal();
+	}).fail(function () {
+		console.error("Failed to reach diagnoseID endpoint");
+	});
+}
+
 function databank() {
 	if (document.getElementById('databank').files.length != 1) {
 		alert('Please select a proper file first');
@@ -1042,3 +1046,31 @@ $(document).on('click', '#SpliceButton', function () {
 	   });
 });
 
+$(document).on('click', '#DeleteStopButton', function() {
+	const target = $(this);
+	const stop_id = target.data("stop_id");
+	const row = target.data("row");
+
+	var pw = $("#password").val();
+	if (!pw) {
+		$.toast({
+			title: 'Delete Stop',
+			subtitle: 'No password provided.',
+			content: 'Please enter the password.',
+			type: 'error',
+			delay: 5000
+		});
+		shakeIt('password');
+	} else {
+		if (confirm('Are you sure you want to delete stop ' + stop_id + ' ?')) {
+			var jqxhr = $.get( `${APIpath}deleteByKey?pw=${pw}&key=stop_id&value=${stop_id}`, function( returndata ) {
+				console.log('deleteByKey API GET request successful. Message: ' + returndata);
+			});
+			row.delete();
+			$("#NumberofRows").html(table.getData().length + ' row(s)');
+			reloadMap();
+		}
+	}
+
+	$('#DeleteModal').modal('hide');
+});
