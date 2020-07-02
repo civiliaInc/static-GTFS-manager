@@ -586,7 +586,7 @@ function reloadMap(timeflag = 'normal', filterFlag = false) {
 		data = table.getData(); // gets full data from table
 
 	loadonmap(data, stopsLayer);
-	if (timeflag == 'firstTime') {
+	if (data.length > 0 && timeflag == 'firstTime') {
 		map.flyToBounds(stopsLayer.getBounds(), { padding: [20, 20], maxZoom: 16 });
 		//Zoom map to see all stops only the first time. Later when making changes, don't bother.
 	}
